@@ -73,6 +73,79 @@ class AutoDispatch_Example {
 }
 ```
 
+An example of class dispatching might be as follows.
+
+```java
+@Multi
+@interface ExampleMulti {
+    Age value();
+}
+
+@AutoDispatch(ExampleMulti.class)
+abstract class Example implements Callable<String> {
+
+    @AutoDispatch.Dispatcher(ExampleMulti.class)
+    Age dispatch(Person person) {
+        return person.years < 60 ? Age.Young : Age.Old;
+    }
+
+    public static Example create(Person person) {
+        return new AutoDispatch_Example(person);
+    }
+}
+
+class YoungPerson implements Callable<String> {
+
+    @ExampleMulti(Age.Young)
+    public YoungPerson(Person person) {
+    }
+
+    @Override
+    public String call() throws Exception {
+        return "You're so young!";
+    }
+}
+
+class OldPerson implements Callable<String> {
+
+    @ExampleMulti(Age.Old)
+    public OldPerson(Person person) {
+    }
+
+    @Override
+    public String call() throws Exception {
+        return "You're quite old...";
+    }
+}
+```
+
+With a generated class looking like this:
+
+```java
+final class AutoDispatch_Example extends Example {
+
+    private final Callable<String> stringCallable;
+
+    public AutoDispatch_Example(Person person) {
+        Age age = dispatch(person);
+        if (age == Age.Young) {
+            YoungPerson youngPerson = new YoungPerson(person);
+            this.stringCallable = youngPerson;
+        } else if (age == Age.Old) {
+            OldPerson oldPerson = new OldPerson(person);
+            this.stringCallable = oldPerson;
+        } else {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    @Override
+    public String call() throws Exception {
+        return stringCallable.call();
+    }
+}
+```
+
 ## License
 
     Copyright 2016 Brian Norman
