@@ -6,14 +6,9 @@ The base annotations describe the layout of the methods or classes to which will
 
 ```java
 @interface AutoDispatch {
-    Class<? extends Annotation> value();
+    Class<? extends Annotation> multi();
 
-    @interface Dispatcher {
-        Class<? extends Annotation> value();
-    }
-}
-
-@interface Multi {
+    Class<? extends Annotation> dispatcher();
 }
 ```
 An example usage might look something like this.
@@ -28,18 +23,20 @@ enum Age {
     Old
 }
 
-@Multi
 @interface DescriptionMulti {
     Age value();
+
+    @interface Dispatcher {
+    }
 }
 
-class Example {
-    @AutoDispatch(DescriptionMulti.class)
+class MethodExample {
+    @AutoDispatch(multi = DescriptionMulti.class, dispatcher = DescriptionMulti.Dispatcher.class)
     public String description(Person person) {
-        return AutoDispatch_Example.description(this, person);
+        return AutoDispatch_MethodExample.description(this, person);
     }
 
-    @AutoDispatch.Dispatcher(DescriptionMulti.class)
+    @DescriptionMulti.Dispatcher
     public Age descriptionDispatch(Person person) {
         return person.years < 60 ? Age.Young : Age.Old;
     }
@@ -58,8 +55,8 @@ class Example {
 With a generated class that looks something like this.
 
 ```java
-class AutoDispatch_Example {
-    static String description(Example self, Person person) {
+class AutoDispatch_MethodExample {
+    static String description(MethodExample self, Person person) {
         Age age = self.descriptionDispatch(person);
         if (age == Age.Young) {
             return self.descriptionYoung(person);
@@ -76,26 +73,26 @@ class AutoDispatch_Example {
 An example of class dispatching might be as follows.
 
 ```java
-@Multi
 @interface ExampleMulti {
     Age value();
 }
 
-@AutoDispatch(ExampleMulti.class)
-abstract class Example implements Callable<String> {
+@interface ExampleDispatcher {
+}
 
-    @AutoDispatch.Dispatcher(ExampleMulti.class)
+@AutoDispatch(multi = ExampleMulti.class, dispatcher = ExampleDispatcher.class)
+abstract class ClassExample implements Callable<String> {
+    @ExampleDispatcher
     Age dispatch(Person person) {
         return person.years < 60 ? Age.Young : Age.Old;
     }
 
-    public static Example create(Person person) {
-        return new AutoDispatch_Example(person);
+    public static ClassExample create(Person person) {
+        return new AutoDispatch_ClassExample(person);
     }
 }
 
 class YoungPerson implements Callable<String> {
-
     @ExampleMulti(Age.Young)
     public YoungPerson(Person person) {
     }
@@ -107,7 +104,6 @@ class YoungPerson implements Callable<String> {
 }
 
 class OldPerson implements Callable<String> {
-
     @ExampleMulti(Age.Old)
     public OldPerson(Person person) {
     }
@@ -122,11 +118,51 @@ class OldPerson implements Callable<String> {
 With a generated class looking like this:
 
 ```java
-final class AutoDispatch_Example extends Example {
-
+final class AutoDispatch_ClassExample extends ClassExample {
     private final Callable<String> stringCallable;
 
-    public AutoDispatch_Example(Person person) {
+    AutoDispatch_ClassExample(Person person) {
+        Age age = dispatch(person);
+        if (age == Age.Young) {
+            YoungPerson youngPerson = new YoungPerson(person);
+            this.stringCallable = youngPerson;
+        } else if (age == Age.Old) {
+            OldPerson oldPerson = new OldPerson(person);
+            this.stringCallable = oldPerson;
+        } else {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    @Override
+    public String call() throws Exception {
+        return stringCallable.call();
+    }
+}
+```
+
+If you want to dispatch to the same methods or classes but use a different dispatch method, simply define a new dispatch annotation.
+
+```java
+@interface ExampleDispatcher2 {
+}
+
+@AutoDispatch(multi = ExampleMulti.class, dispatcher = ExampleDispatcher2.class)
+abstract class ClassExample2 implements Callable<String> {
+    @ExampleDispatcher2
+    Age dispatch(Person person) {
+        return person.years < 65 ? Age.Young : Age.Old;
+    }
+
+    public static ClassExample2 create(Person person) {
+        return new AutoDispatch_ClassExample2(person);
+    }
+}
+
+final class AutoDispatch_ClassExample2 extends ClassExample2 {
+    private final Callable<String> stringCallable;
+
+    public AutoDispatch_ClassExample2(Person person) {
         Age age = dispatch(person);
         if (age == Age.Young) {
             YoungPerson youngPerson = new YoungPerson(person);
