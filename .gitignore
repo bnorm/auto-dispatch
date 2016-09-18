@@ -1,5 +1,11 @@
-idea
-*.iml
+# Maven
 target
 dependency-reduced-pom.xml
 
+# IntelliJ
+*.iml
+.idea/*
+!.idea/copyright
+!.idea/fileTemplates
+!.idea/inspectionProfiles
+!.idea/codeStyleSettings.xml
