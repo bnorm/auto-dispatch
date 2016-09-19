@@ -1,5 +1,6 @@
 package test;
 
 public class Person {
-    int years;
+  int years;
+  int height;
 }
