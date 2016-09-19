@@ -1,10 +1,8 @@
 package com.bnorm.auto.dispatch.internal;
 
+import java.io.IOException;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -13,19 +11,20 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.MirroredTypesException;
-import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
+import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
 
 import com.bnorm.auto.dispatch.AutoDispatch;
+import com.squareup.javapoet.JavaFile;
 
 //@AutoService(Processor.class)
 public class AutoDispatchProcessor extends AbstractProcessor {
-
-    private static final String CONSTRUCTOR_NAME = "<init>";
 
     private static final Set<String> SUPPORTED = Collections.singleton(AutoDispatch.class.getName());
 
@@ -54,83 +53,59 @@ public class AutoDispatchProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         final Set<MethodDescriptor> methodDescriptors = new LinkedHashSet<>();
-        final Set<ConstructorDescriptor> constructorDescriptor = new LinkedHashSet<>();
+        final Set<TypeDescriptor> typeDescriptor = new LinkedHashSet<>();
 
         for (Element element : roundEnv.getElementsAnnotatedWith(AutoDispatch.class)) {
-            ExecutableElement executableElement = (ExecutableElement) element;
-            if (executableElement.getSimpleName().contentEquals(CONSTRUCTOR_NAME)) {
-                methodDescriptors.add(describeMethod(executableElement));
-            } else {
-                constructorDescriptor.add(describeConstructor(executableElement));
+            if (element.getKind() == ElementKind.METHOD) {
+                methodDescriptors.add(Descriptors.describeMethod((ExecutableElement) element, roundEnv, types));
+            } else if (element.getKind() == ElementKind.CLASS) {
+                typeDescriptor.add(Descriptors.describeType((TypeElement) element, roundEnv, types));
             }
         }
 
-        Set<MethodClassDescriptor> methodClassDescriptors = reduce(methodDescriptors);
-
+        Set<MethodClassDescriptor> methodClassDescriptors = Descriptors.reduce(methodDescriptors);
+        for (MethodClassDescriptor methodClassDescriptor : methodClassDescriptors) {
+            JavaFile javaFile = Writer.write(methodClassDescriptor);
+            writeSourceFile(javaFile, methodClassDescriptor.type());
+        }
         return false;
     }
 
-    private static Set<MethodClassDescriptor> reduce(Set<MethodDescriptor> methodDescriptors) {
-        Map<TypeElement, MethodClassDescriptor.Builder> methodClassDescriptorBuilders = new LinkedHashMap<>();
-        for (MethodDescriptor methodDescriptor : methodDescriptors) {
-            TypeElement enclosingElement = (TypeElement) methodDescriptor.method().getEnclosingElement();
 
-            MethodClassDescriptor.Builder builder = methodClassDescriptorBuilders.get(enclosingElement);
-            if (builder == null) {
-                builder = MethodClassDescriptor.builder();
-                builder.type(enclosingElement);
-                methodClassDescriptorBuilders.put(enclosingElement, builder);
+    private void writeSourceFile(JavaFile javaFile, TypeElement originatingType) {
+        try {
+            JavaFileObject sourceFile = processingEnv.getFiler()
+                                                     .createSourceFile(fqClassNameOf(originatingType), originatingType);
+            java.io.Writer writer = sourceFile.openWriter();
+            try {
+                javaFile.writeTo(writer);
+            } finally {
+                writer.close();
             }
-
-            builder.method(methodDescriptor);
+        } catch (IOException e) {
+            processingEnv.getMessager()
+                         .printMessage(Diagnostic.Kind.ERROR,
+                                       "Could not write generated class " + javaFile.typeSpec.name + ": " + e);
         }
-
-        Set<MethodClassDescriptor> methodClassDescriptors = new LinkedHashSet<>();
-        for (MethodClassDescriptor.Builder builder : methodClassDescriptorBuilders.values()) {
-            methodClassDescriptors.add(builder.build());
-        }
-        return methodClassDescriptors;
     }
 
-    private static MethodDescriptor describeMethod(ExecutableElement element) {
-        MethodDescriptor.Builder builder = MethodDescriptor.builder();
-        builder.method(element);
-        describeElement(builder, element);
-        return builder.build();
+    private String fqClassNameOf(TypeElement type) {
+        String pkg = packageNameOf(type);
+        String dot = pkg.isEmpty() ? "" : ".";
+        return pkg + dot + classNameOf(type);
     }
 
-    private static ConstructorDescriptor describeConstructor(ExecutableElement element) {
-        ConstructorDescriptor.Builder builder = ConstructorDescriptor.builder();
-        builder.constructor(element);
-        describeElement(builder, element);
-        return builder.build();
+    private String classNameOf(TypeElement type) {
+        return "AutoDispatch_" + type.getSimpleName().toString();
     }
 
-    private static void describeElement(ExecutableDescriptorBuilder builder, ExecutableElement element) {
-        AutoDispatch annotation = element.getAnnotation(AutoDispatch.class);
-        assert annotation != null;
-
-        TypeMirror multi = null;
-        try {
-            annotation.multi();
-        } catch (MirroredTypesException e) {
-            List<? extends TypeMirror> typeMirrors = e.getTypeMirrors();
-            assert typeMirrors.size() == 1;
-            multi = typeMirrors.get(0);
+    static String packageNameOf(TypeElement type) {
+        while (true) {
+            Element enclosing = type.getEnclosingElement();
+            if (enclosing instanceof PackageElement) {
+                return ((PackageElement) enclosing).getQualifiedName().toString();
+            }
+            type = (TypeElement) enclosing;
         }
-        assert multi != null;
-
-        TypeMirror dispatcher = null;
-        try {
-            annotation.dispatcher();
-        } catch (MirroredTypesException e) {
-            List<? extends TypeMirror> typeMirrors = e.getTypeMirrors();
-            assert typeMirrors.size() == 1;
-            dispatcher = typeMirrors.get(0);
-        }
-        assert dispatcher != null;
-
-        builder.multi(multi);
-        builder.dispatcher(dispatcher);
     }
 }

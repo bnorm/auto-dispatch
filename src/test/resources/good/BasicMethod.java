@@ -20,7 +20,6 @@ public class BasicMethod {
 
     @AutoDispatch(multi = DescriptionMulti.class, dispatcher = DescriptionMulti.Dispatcher.class)
     public String description(Person person) {
-//        return AutoDispatch_MethodExample.description(this, person);
-        return null;
+        return AutoDispatch_BasicMethod.description(this, person);
     }
 }

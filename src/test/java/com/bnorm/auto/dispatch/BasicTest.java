@@ -17,8 +17,8 @@ public class BasicTest extends TestCase {
                                       JavaFileObjects.forResource("support/Person.java"),
                                       JavaFileObjects.forResource("support/Age.java"))
                           .processedWith(new AutoDispatchProcessor())
-                          .compilesWithoutError();
-        //                          .and()
-        //                          .generatesSources(JavaFileObjects.forResource("expected/AutoDispatch_BasicMethod.java"));
+                          .compilesWithoutError()
+                          .and()
+                          .generatesSources(JavaFileObjects.forResource("expected/AutoDispatch_BasicMethod.java"));
     }
 }

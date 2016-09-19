@@ -1,19 +1,19 @@
 package com.bnorm.auto.dispatch.internal;
 
-import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableSet;
 
 @AutoValue
-public abstract class MethodDescriptor {
+public abstract class TypeDescriptor {
 
-    public static MethodDescriptor.Builder builder() {
-        return new AutoValue_MethodDescriptor.Builder();
+    public static TypeDescriptor.Builder builder() {
+        return new AutoValue_TypeDescriptor.Builder();
     }
 
-    public abstract ExecutableElement method();
+    public abstract TypeElement type();
 
     public abstract TypeMirror multi();
 
@@ -26,7 +26,7 @@ public abstract class MethodDescriptor {
     @AutoValue.Builder
     public abstract static class Builder implements DispatchDescriptorBuilder {
 
-        public abstract Builder method(ExecutableElement method);
+        public abstract Builder type(TypeElement method);
 
         @Override
         public abstract Builder multi(TypeMirror multi);
@@ -45,6 +45,6 @@ public abstract class MethodDescriptor {
         @Override
         public abstract Builder dispatcherDescriptor(DispatcherDescriptor dispatcherDescriptor);
 
-        public abstract MethodDescriptor build();
+        public abstract TypeDescriptor build();
     }
 }
