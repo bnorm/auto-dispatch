@@ -13,12 +13,10 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
 
 import com.bnorm.auto.dispatch.AutoDispatch;
 import com.squareup.javapoet.JavaFile;
@@ -66,46 +64,18 @@ public class AutoDispatchProcessor extends AbstractProcessor {
         Set<MethodClassDescriptor> methodClassDescriptors = Descriptors.reduce(methodDescriptors);
         for (MethodClassDescriptor methodClassDescriptor : methodClassDescriptors) {
             JavaFile javaFile = Writer.write(methodClassDescriptor);
-            writeSourceFile(javaFile, methodClassDescriptor.type());
+            writeSourceFile(javaFile);
         }
         return false;
     }
 
 
-    private void writeSourceFile(JavaFile javaFile, TypeElement originatingType) {
+    private void writeSourceFile(JavaFile javaFile) {
         try {
-            JavaFileObject sourceFile = processingEnv.getFiler()
-                                                     .createSourceFile(fqClassNameOf(originatingType), originatingType);
-            java.io.Writer writer = sourceFile.openWriter();
-            try {
-                javaFile.writeTo(writer);
-            } finally {
-                writer.close();
-            }
+            javaFile.writeTo(processingEnv.getFiler());
         } catch (IOException e) {
-            processingEnv.getMessager()
-                         .printMessage(Diagnostic.Kind.ERROR,
-                                       "Could not write generated class " + javaFile.typeSpec.name + ": " + e);
-        }
-    }
-
-    private String fqClassNameOf(TypeElement type) {
-        String pkg = packageNameOf(type);
-        String dot = pkg.isEmpty() ? "" : ".";
-        return pkg + dot + classNameOf(type);
-    }
-
-    private String classNameOf(TypeElement type) {
-        return "AutoDispatch_" + type.getSimpleName().toString();
-    }
-
-    static String packageNameOf(TypeElement type) {
-        while (true) {
-            Element enclosing = type.getEnclosingElement();
-            if (enclosing instanceof PackageElement) {
-                return ((PackageElement) enclosing).getQualifiedName().toString();
-            }
-            type = (TypeElement) enclosing;
+          messager.printMessage(Diagnostic.Kind.ERROR,
+                                "Could not write generated class " + javaFile.typeSpec.name + ": " + e);
         }
     }
 }

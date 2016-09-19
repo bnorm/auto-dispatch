@@ -17,7 +17,7 @@ final class AutoDispatch_BasicMethod {
     if (value == test.Age.Old) {
       return self.descriptionOld(person);
     } else {
-      throw new UnsupportedOperationException("no executable fors value == " + value);
+      throw new UnsupportedOperationException("no method for value == " + value);
     }
   }
 }

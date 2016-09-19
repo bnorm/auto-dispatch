@@ -9,6 +9,7 @@ import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 
@@ -28,6 +29,7 @@ public enum Writer {
         // start building the class
         TypeElement type = methodClassDescriptor.type();
         TypeSpec.Builder typeBuilder = TypeSpec.classBuilder("AutoDispatch_" + type.getSimpleName().toString());
+        typeBuilder.addOriginatingElement(type);
         typeBuilder.addModifiers(Modifier.FINAL);
 
         // add private type
@@ -54,7 +56,10 @@ public enum Writer {
             }
 
             // add return value
-            methodBuilder.returns(TypeName.get(method.getReturnType()));
+            boolean voidReturn = method.getReturnType().getKind() == TypeKind.VOID;
+            if (!voidReturn) {
+                methodBuilder.returns(TypeName.get(method.getReturnType()));
+            }
 
             // add self parameter to the executable (if required)
             if (!method.getModifiers().contains(Modifier.STATIC)) {
@@ -106,11 +111,16 @@ public enum Writer {
             for (MultiDescriptor descriptor : methodDescriptor.multiMethods()) {
                 String prefix = first ? "else " : "";
                 codeBlockBuilder.nextControlFlow(prefix + "if (value == $L)", descriptor.value());
-                codeBlockBuilder.addStatement("return self.$L($L)", descriptor.executable().getSimpleName(), paramStr);
+                if (voidReturn) {
+                    codeBlockBuilder.addStatement("self.$L($L)", descriptor.executable().getSimpleName(), paramStr);
+                    codeBlockBuilder.addStatement("return");
+                } else {
+                    codeBlockBuilder.addStatement("return self.$L($L)", descriptor.executable().getSimpleName(), paramStr);
+                }
             }
             codeBlockBuilder.nextControlFlow("else");
             codeBlockBuilder.addStatement("throw new UnsupportedOperationException($S + value)",
-                                          "no executable fors value == ");
+                                          "no method for value == ");
             codeBlockBuilder.endControlFlow();
 
             methodBuilder.addCode(codeBlockBuilder.build());
