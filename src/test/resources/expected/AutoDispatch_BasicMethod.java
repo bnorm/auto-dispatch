@@ -3,6 +3,7 @@ package test;
 import java.lang.String;
 
 final class AutoDispatch_BasicMethod {
+
   private AutoDispatch_BasicMethod() {
   }
 

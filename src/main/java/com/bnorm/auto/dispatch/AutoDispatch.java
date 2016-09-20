@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 public @interface AutoDispatch {
 
-    Class<? extends Annotation> multi();
+  Class<? extends Annotation> multi();
 
-    Class<? extends Annotation> dispatcher();
+  Class<? extends Annotation> dispatcher();
 }

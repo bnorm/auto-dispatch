@@ -3,6 +3,7 @@ package test;
 import java.lang.String;
 
 final class AutoDispatch_DoubleMethod {
+
   private AutoDispatch_DoubleMethod() {
   }
 

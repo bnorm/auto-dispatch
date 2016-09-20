@@ -8,21 +8,21 @@ import com.google.auto.value.AutoValue;
 @AutoValue
 public abstract class MultiDescriptor {
 
-    public static Builder builder() {
-        return new AutoValue_MultiDescriptor.Builder();
-    }
+  public static Builder builder() {
+    return new AutoValue_MultiDescriptor.Builder();
+  }
 
-    public abstract AnnotationValue value();
+  public abstract AnnotationValue value();
 
-    public abstract ExecutableElement executable();
+  public abstract ExecutableElement executable();
 
-    @AutoValue.Builder
-    public static abstract class Builder {
+  @AutoValue.Builder
+  public static abstract class Builder {
 
-        public abstract Builder value(AnnotationValue value);
+    public abstract Builder value(AnnotationValue value);
 
-        public abstract Builder executable(ExecutableElement executable);
+    public abstract Builder executable(ExecutableElement executable);
 
-        public abstract MultiDescriptor build();
-    }
+    public abstract MultiDescriptor build();
+  }
 }

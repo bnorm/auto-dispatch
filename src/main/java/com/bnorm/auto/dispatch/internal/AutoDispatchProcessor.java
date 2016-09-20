@@ -24,58 +24,58 @@ import com.squareup.javapoet.JavaFile;
 //@AutoService(Processor.class)
 public class AutoDispatchProcessor extends AbstractProcessor {
 
-    private static final Set<String> SUPPORTED = Collections.singleton(AutoDispatch.class.getName());
+  private static final Set<String> SUPPORTED = Collections.singleton(AutoDispatch.class.getName());
 
-    private Messager messager;
-    private Elements elements;
-    private Types types;
+  private Messager messager;
+  private Elements elements;
+  private Types types;
 
-    @Override
-    public Set<String> getSupportedAnnotationTypes() {
-        return SUPPORTED;
+  @Override
+  public Set<String> getSupportedAnnotationTypes() {
+    return SUPPORTED;
+  }
+
+  @Override
+  public SourceVersion getSupportedSourceVersion() {
+    return SourceVersion.latestSupported();
+  }
+
+  @Override
+  public synchronized void init(ProcessingEnvironment processingEnv) {
+    super.init(processingEnv);
+    messager = processingEnv.getMessager();
+    elements = processingEnv.getElementUtils();
+    types = processingEnv.getTypeUtils();
+  }
+
+  @Override
+  public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+    final Set<MethodDescriptor> methodDescriptors = new LinkedHashSet<>();
+    final Set<TypeDescriptor> typeDescriptor = new LinkedHashSet<>();
+
+    for (Element element : roundEnv.getElementsAnnotatedWith(AutoDispatch.class)) {
+      if (element.getKind() == ElementKind.METHOD) {
+        methodDescriptors.add(Descriptors.describeMethod((ExecutableElement) element, roundEnv, types));
+      } else if (element.getKind() == ElementKind.CLASS) {
+        typeDescriptor.add(Descriptors.describeType((TypeElement) element, roundEnv, types));
+      }
     }
 
-    @Override
-    public SourceVersion getSupportedSourceVersion() {
-        return SourceVersion.latestSupported();
+    Set<MethodClassDescriptor> methodClassDescriptors = Descriptors.reduce(methodDescriptors);
+    for (MethodClassDescriptor methodClassDescriptor : methodClassDescriptors) {
+      JavaFile javaFile = Writer.write(methodClassDescriptor);
+      writeSourceFile(javaFile);
     }
+    return false;
+  }
 
-    @Override
-    public synchronized void init(ProcessingEnvironment processingEnv) {
-        super.init(processingEnv);
-        messager = processingEnv.getMessager();
-        elements = processingEnv.getElementUtils();
-        types = processingEnv.getTypeUtils();
+
+  private void writeSourceFile(JavaFile javaFile) {
+    try {
+      javaFile.writeTo(processingEnv.getFiler());
+    } catch (IOException e) {
+      messager.printMessage(Diagnostic.Kind.ERROR,
+                            "Could not write generated class " + javaFile.typeSpec.name + ": " + e);
     }
-
-    @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        final Set<MethodDescriptor> methodDescriptors = new LinkedHashSet<>();
-        final Set<TypeDescriptor> typeDescriptor = new LinkedHashSet<>();
-
-        for (Element element : roundEnv.getElementsAnnotatedWith(AutoDispatch.class)) {
-            if (element.getKind() == ElementKind.METHOD) {
-                methodDescriptors.add(Descriptors.describeMethod((ExecutableElement) element, roundEnv, types));
-            } else if (element.getKind() == ElementKind.CLASS) {
-                typeDescriptor.add(Descriptors.describeType((TypeElement) element, roundEnv, types));
-            }
-        }
-
-        Set<MethodClassDescriptor> methodClassDescriptors = Descriptors.reduce(methodDescriptors);
-        for (MethodClassDescriptor methodClassDescriptor : methodClassDescriptors) {
-            JavaFile javaFile = Writer.write(methodClassDescriptor);
-            writeSourceFile(javaFile);
-        }
-        return false;
-    }
-
-
-    private void writeSourceFile(JavaFile javaFile) {
-        try {
-            javaFile.writeTo(processingEnv.getFiler());
-        } catch (IOException e) {
-          messager.printMessage(Diagnostic.Kind.ERROR,
-                                "Could not write generated class " + javaFile.typeSpec.name + ": " + e);
-        }
-    }
+  }
 }

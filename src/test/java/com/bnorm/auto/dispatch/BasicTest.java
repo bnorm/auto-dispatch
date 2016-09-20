@@ -10,15 +10,15 @@ import junit.framework.TestCase;
 
 public class BasicTest extends TestCase {
 
-    @Test
-    public void test() throws Exception {
-        JavaSourcesSubject.assertThat(JavaFileObjects.forResource("good/BasicMethod.java"),
-                                      JavaFileObjects.forResource("good/DescriptionMulti.java"),
-                                      JavaFileObjects.forResource("support/Person.java"),
-                                      JavaFileObjects.forResource("support/Age.java"))
-                          .processedWith(new AutoDispatchProcessor())
-                          .compilesWithoutError()
-                          .and()
-                          .generatesSources(JavaFileObjects.forResource("expected/AutoDispatch_BasicMethod.java"));
-    }
+  @Test
+  public void test() throws Exception {
+    JavaSourcesSubject.assertThat(JavaFileObjects.forResource("good/BasicMethod.java"),
+                                  JavaFileObjects.forResource("good/DescriptionMulti.java"),
+                                  JavaFileObjects.forResource("support/Person.java"),
+                                  JavaFileObjects.forResource("support/Age.java"))
+                      .processedWith(new AutoDispatchProcessor())
+                      .compilesWithoutError()
+                      .and()
+                      .generatesSources(JavaFileObjects.forResource("expected/AutoDispatch_BasicMethod.java"));
+  }
 }

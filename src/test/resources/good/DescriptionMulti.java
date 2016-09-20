@@ -1,8 +1,10 @@
 package test;
 
 public @interface DescriptionMulti {
-    Age value();
 
-    @interface Dispatcher {
-    }
+  Age value();
+
+  @interface Dispatcher {
+
+  }
 }

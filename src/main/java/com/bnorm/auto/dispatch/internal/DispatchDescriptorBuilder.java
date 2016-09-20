@@ -5,11 +5,11 @@ import javax.lang.model.type.TypeMirror;
 
 public interface DispatchDescriptorBuilder {
 
-    DispatchDescriptorBuilder multi(TypeMirror multi);
+  DispatchDescriptorBuilder multi(TypeMirror multi);
 
-    DispatchDescriptorBuilder addMultiDescriptor(MultiDescriptor multiDescriptor);
+  DispatchDescriptorBuilder addMultiDescriptor(MultiDescriptor multiDescriptor);
 
-    DispatchDescriptorBuilder dispatcher(TypeMirror dispatcher);
+  DispatchDescriptorBuilder dispatcher(TypeMirror dispatcher);
 
-    DispatchDescriptorBuilder dispatcherDescriptor(DispatcherDescriptor dispatcherDescriptor);
+  DispatchDescriptorBuilder dispatcherDescriptor(DispatcherDescriptor dispatcherDescriptor);
 }
