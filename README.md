@@ -1,5 +1,10 @@
 # auto-dispatch
 
+<!--- All the badges! --->
+<!---[![Maven Central](https://img.shields.io/maven-central/v/com.bnorm.auto.dispatch/auto-dispatch.svg?style=flat-square)](http://mvnrepository.com/artifact/com.bnorm.auto.dispatch/auto-dispatch)--->
+[![CircleCI](https://img.shields.io/circleci/project/bnorm/auto-weave.svg?style=flat-square)](https://circleci.com/gh/bnorm/auto-dispatch)
+[![Codecov](https://img.shields.io/codecov/c/github/bnorm/auto-weave.svg?style=flat-square)](https://codecov.io/gh/bnorm/auto-dispatch)
+
 AutoDispatch is a multimethod implementation for Java using an annotation processor.
 
 The base annotations describe the layout of the methods or classes to which will be dispatched.
