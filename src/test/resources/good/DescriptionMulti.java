@@ -2,7 +2,7 @@ package test;
 
 public @interface DescriptionMulti {
 
-  Age value();
+  Age[] value();
 
   @interface Dispatcher {
 

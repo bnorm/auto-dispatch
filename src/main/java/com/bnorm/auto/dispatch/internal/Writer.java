@@ -1,6 +1,10 @@
 package com.bnorm.auto.dispatch.internal;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ExecutableElement;
@@ -108,9 +112,38 @@ public enum Writer {
         codeBlockBuilder.addStatement("throw new NullPointerException($S)", "dispatch value == null");
         first = false;
       }
-      for (MultiDescriptor descriptor : methodDescriptor.multiMethods()) {
+
+      // Work with multiMethod dispatch values as a list
+      // This allows a multiMethod to accept several dispatch values
+      Function<MultiDescriptor, List<?>> toDispatchValues = descriptor ->
+          descriptor.value().getValue() instanceof List<?> ? (List<?>) descriptor.value().getValue()
+                                                           : Collections.singletonList(descriptor.value().getValue());
+
+      // Dispatch to multiMethods from the most specific to the most accepting
+      List<MultiDescriptor> multiMethods = new ArrayList<>(methodDescriptor.multiMethods());
+      multiMethods.sort((m1, m2) -> {
+        List<?> values1 = toDispatchValues.apply(m1);
+        List<?> values2 = toDispatchValues.apply(m2);
+
+        return Integer.compare(values1.size(), values2.size());
+      });
+
+      for (MultiDescriptor descriptor : multiMethods) {
         String prefix = first ? "else " : "";
-        codeBlockBuilder.nextControlFlow(prefix + "if (value == $L)", descriptor.value());
+
+        // will always have at least one value
+        List<?> dispatchValues = toDispatchValues.apply(descriptor);
+        if (dispatchValues.size() == 1) {
+          String value =
+              descriptor.value().getValue() instanceof List<?> ? ((List<?>) descriptor.value().getValue()).get(0)
+                                                                                                          .toString()
+                                                               : descriptor.value().toString();
+          codeBlockBuilder.nextControlFlow(prefix + "if (value == $L)", value);
+        } else {
+          String valuesString = dispatchValues.stream().map(Object::toString).reduce((v1, v2) -> v1 + ", " + v2).get();
+          codeBlockBuilder.nextControlFlow(prefix + "if ($T.asList($L).contains(value))", Arrays.class, valuesString);
+        }
+
         if (voidReturn) {
           codeBlockBuilder.addStatement("self.$L($L)", descriptor.executable().getSimpleName(), paramStr);
           codeBlockBuilder.addStatement("return");
